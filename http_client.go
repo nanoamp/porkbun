@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/resty.v1"
@@ -101,6 +102,7 @@ type createRecordResponse struct {
 
 func (p *Provider) doCreate(ctx context.Context, domain string, req createRecordRequest) (*createRecordResponse, error) {
 	req.TTLStr = strconv.Itoa(int(req.TTL.Seconds()))
+	req.Name = trimDomain(req.Name, domain)
 	resp, err := resty.R().SetContext(ctx).SetBody(req).Post(fmt.Sprintf("https://porkbun.com/api/json/v3/dns/create/%s", domain))
 	if err != nil {
 		return nil, err
@@ -132,6 +134,7 @@ type editRecordResponse struct {
 
 func (p *Provider) doEdit(ctx context.Context, domain, id string, req editRecordRequest) (*editRecordResponse, error) {
 	req.TTLStr = strconv.Itoa(int(req.TTL.Seconds()))
+	req.Name = trimDomain(req.Name, domain)
 	resp, err := resty.R().SetContext(ctx).SetBody(req).Post(fmt.Sprintf("https://porkbun.com/api/json/v3/dns/edit/%s/%s", domain, id))
 	if err != nil {
 		return nil, err
@@ -144,4 +147,8 @@ func (p *Provider) doEdit(ctx context.Context, domain, id string, req editRecord
 		return nil, fmt.Errorf("API call failed: %v", r.Message)
 	}
 	return r, nil
+}
+
+func trimDomain(name, domain string) string {
+	return strings.TrimSuffix(name, "."+domain)
 }
