@@ -4,19 +4,14 @@ package porkbun
 
 import (
 	"context"
+	"fmt"
 	"strings"
-	"time"
 
 	"github.com/libdns/libdns"
 )
 
-// TODO: Providers must not require additional provisioning steps by the callers; it
-// should work simply by populating a struct and calling methods on it. If your DNS
-// service requires long-lived state or some extra provisioning step, do it implicitly
-// when methods are called; sync.Once can help with this, and/or you can use a
-// sync.(RW)Mutex in your Provider struct to synchronize implicit provisioning.
-
-// Provider facilitates DNS record manipulation with <TODO: PROVIDER NAME>.
+// Provider facilitates DNS record manipulation with porkbun.com.
+// For more info, https://porkbun.com/api/json/v3/documentation.
 type Provider struct {
 	APIKey       string `json:"api_key,omitempty"`
 	SecretAPIKey string `json:"secret_api_key"`
@@ -38,7 +33,7 @@ func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record
 			Type:  r.Type,
 			Name:  r.Name,
 			Value: r.Content,
-			TTL:   time.Second * time.Duration(r.TTL),
+			TTL:   r.TTL,
 		})
 	}
 	return ret, nil
@@ -54,14 +49,14 @@ func (p *Provider) AppendRecords(ctx context.Context, zone string, records []lib
 			Name:         r.Name,
 			Type:         r.Type,
 			Content:      r.Value,
-			TTL:          r.TTL.Seconds(),
+			TTL:          r.TTL,
 		})
 		if err == nil {
 			ret = append(ret, libdns.Record{
-				ID:    resp.ID,
-				Type:  r.ID,
+				ID:    fmt.Sprintf("%d", resp.ID),
+				Type:  r.Type,
 				Name:  r.Name,
-				Value: r.Type,
+				Value: r.Value,
 				TTL:   r.TTL,
 			})
 		}
@@ -82,11 +77,11 @@ func (p *Provider) SetRecords(ctx context.Context, zone string, records []libdns
 				Name:         r.Name,
 				Type:         r.Type,
 				Content:      r.Value,
-				TTL:          r.TTL.Seconds(),
+				TTL:          r.TTL,
 			})
 			if err == nil {
 				ret = append(ret, libdns.Record{
-					ID:    resp.ID,
+					ID:    fmt.Sprintf("%d", resp.ID),
 					Type:  r.Type,
 					Name:  r.Name,
 					Value: r.Value,
@@ -101,7 +96,7 @@ func (p *Provider) SetRecords(ctx context.Context, zone string, records []libdns
 				Name:         r.Name,
 				Type:         r.Type,
 				Content:      r.Value,
-				TTL:          r.TTL.Seconds(),
+				TTL:          r.TTL,
 			})
 			if err == nil {
 				ret = append(ret, r)
@@ -128,20 +123,6 @@ func (p *Provider) DeleteRecords(ctx context.Context, zone string, records []lib
 		}
 	}
 	return ret, nil
-}
-
-func (p *Provider) getRecords(ctx context.Context, zone string) (idToRecord map[string]libdns.Record, nameToID map[string]string, err error) {
-	nameToID = make(map[string]string)
-	idToRecord = make(map[string]libdns.Record)
-
-	var rec []libdns.Record
-	if rec, err = p.GetRecords(ctx, zone); err == nil {
-		for _, rec := range rec {
-			nameToID[rec.Name] = rec.ID
-			idToRecord[rec.ID] = rec
-		}
-	}
-	return
 }
 
 func domain(zone string) string {
