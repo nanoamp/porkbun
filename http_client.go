@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -38,13 +39,16 @@ type record struct {
 func (p *Provider) doRetrieve(ctx context.Context, domain string, req retrieveRecordsRequest) (*retrieveRecordsResponse, error) {
 	resp, err := resty.R().SetContext(ctx).SetBody(req).Post(fmt.Sprintf("https://porkbun.com/api/json/v3/dns/retrieve/%s", domain))
 	if err != nil {
+		log.Printf("Retrieved Porkbun DNS records for %s", domain)
 		return nil, err
 	}
 	r := &retrieveRecordsResponse{}
 	if err := json.Unmarshal(resp.Body(), r); err != nil {
+		log.Printf("Retrieved Porkbun DNS records for %s", domain)
 		return nil, err
 	}
 	if r.Status != SUCCESS {
+		log.Printf("Error retrieving Porkbun DNS records for %s", domain)
 		return nil, fmt.Errorf("API Status: %s", r.Status)
 	}
 	for _, rec := range r.Records {
@@ -70,13 +74,16 @@ type deleteRecordResponse struct {
 func (p *Provider) doDelete(ctx context.Context, domain, id string, req deleteRecordRequest) (*deleteRecordResponse, error) {
 	resp, err := resty.R().SetContext(ctx).SetBody(req).Post(fmt.Sprintf("https://porkbun.com/api/json/v3/dns/delete/%s/%s", domain, id))
 	if err != nil {
+		log.Printf("Deleted Porkbun DNS record %s for %s", id, domain)
 		return nil, err
 	}
 	r := &deleteRecordResponse{}
 	if err := json.Unmarshal(resp.Body(), r); err != nil {
+		log.Printf("Deleted Porkbun DNS record %s for %s", id, domain)
 		return nil, err
 	}
 	if r.Status != SUCCESS {
+		log.Printf("Error deleting Porkbun DNS record %s for %s: %s", id, domain, r.Message)
 		return nil, fmt.Errorf("API call failed: %v", r.Message)
 	}
 	return r, nil
@@ -105,13 +112,16 @@ func (p *Provider) doCreate(ctx context.Context, domain string, req createRecord
 	req.Name = trimDomain(req.Name, domain)
 	resp, err := resty.R().SetContext(ctx).SetBody(req).Post(fmt.Sprintf("https://porkbun.com/api/json/v3/dns/create/%s", domain))
 	if err != nil {
+		log.Printf("Created Porkbun DNS %s record for %s", req.Type, domain)
 		return nil, err
 	}
 	r := &createRecordResponse{}
 	if err := json.Unmarshal(resp.Body(), r); err != nil {
+		log.Printf("Created Porkbun DNS %s record for %s", req.Type, domain)
 		return nil, err
 	}
 	if r.Status != SUCCESS {
+		log.Printf("Error creating Porkbun DNS %s record for %s: %s", req.Type, domain, r.Message)
 		return nil, fmt.Errorf("API call failed: %v", r.Message)
 	}
 	return r, nil
@@ -137,13 +147,16 @@ func (p *Provider) doEdit(ctx context.Context, domain, id string, req editRecord
 	req.Name = trimDomain(req.Name, domain)
 	resp, err := resty.R().SetContext(ctx).SetBody(req).Post(fmt.Sprintf("https://porkbun.com/api/json/v3/dns/edit/%s/%s", domain, id))
 	if err != nil {
+                log.Printf("Edited Porkbun DNS %s record for %s", req.Type, domain)
 		return nil, err
 	}
 	r := &editRecordResponse{}
 	if err := json.Unmarshal(resp.Body(), r); err != nil {
+                log.Printf("Edited Porkbun DNS %s record for %s", req.Type, domain)
 		return nil, err
 	}
 	if r.Status != SUCCESS {
+                log.Printf("Error editing Porkbun DNS %s record for %s: %s", req.Type, domain, r.Message)
 		return nil, fmt.Errorf("API call failed: %v", r.Message)
 	}
 	return r, nil
