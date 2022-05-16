@@ -1,4 +1,4 @@
-module github.com/caiych/porkbun
+module github.com/nanoamp/porkbun
 
 go 1.16
 
